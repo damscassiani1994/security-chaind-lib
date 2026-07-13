@@ -1,0 +1,68 @@
+plugins {
+    id 'java-library'
+    id 'maven-publish'
+}
+
+group = 'co.com.scl'
+version = '1.0.0'
+
+ext {
+    springBootVersion = '3.4.5'
+    lombokVersion    = '1.18.36'
+    jjwtVersion      = '0.12.6'
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // ── Core (exported to consumers) ──────────────────────────────────────────
+    api "org.springframework.boot:spring-boot-autoconfigure:${springBootVersion}"
+    api "org.springframework.boot:spring-boot-starter-security:${springBootVersion}"
+    api "org.springframework.boot:spring-boot-starter-web:${springBootVersion}"
+
+    // JWT
+    api            "io.jsonwebtoken:jjwt-api:${jjwtVersion}"
+    implementation "io.jsonwebtoken:jjwt-impl:${jjwtVersion}"
+    implementation "io.jsonwebtoken:jjwt-jackson:${jjwtVersion}"
+
+    // Configuration metadata
+    annotationProcessor "org.springframework.boot:spring-boot-configuration-processor:${springBootVersion}"
+
+    // ── Optional: MongoDB strategy ────────────────────────────────────────────
+    // Consumer must add:  implementation "org.mongodb:mongodb-driver-sync:<version>"
+    compileOnly "org.mongodb:mongodb-driver-sync:5.3.1"
+
+    // ── Optional: SQL strategies ──────────────────────────────────────────────
+    // Consumer must add:  implementation "org.springframework.boot:spring-boot-starter-jdbc:<version>"
+    compileOnly "org.springframework.boot:spring-boot-starter-jdbc:${springBootVersion}"
+
+    // ── Optional: JDBC drivers (consumer provides the one they need) ──────────
+    compileOnly "org.postgresql:postgresql:42.7.3"
+    compileOnly "com.mysql:mysql-connector-j:9.1.0"
+    compileOnly "com.oracle.database.jdbc:ojdbc11:23.7.0.25.01"
+    compileOnly "com.microsoft.sqlserver:mssql-jdbc:12.8.1.jre11"
+
+    // ── Lombok ────────────────────────────────────────────────────────────────
+    compileOnly         "org.projectlombok:lombok:${lombokVersion}"
+    annotationProcessor "org.projectlombok:lombok:${lombokVersion}"
+    testCompileOnly     "org.projectlombok:lombok:${lombokVersion}"
+    testAnnotationProcessor "org.projectlombok:lombok:${lombokVersion}"
+
+    // ── Tests ─────────────────────────────────────────────────────────────────
+    testImplementation platform('org.junit:junit-bom:5.10.0')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+        }
+    }
+}
+
+test {
+    useJUnitPlatform()
+}
