@@ -26,7 +26,6 @@ public abstract class AbstractSqlUserAuthStrategy implements IUserAuthRepository
     }
 
     @Override
-    @SuppressWarnings("deprecation")
     public Optional<UserAuthModel> findByUsername(String username) {
         SecurityProperties.UserProperties u = properties.getUser();
         String sql = String.format(
@@ -39,12 +38,13 @@ public abstract class AbstractSqlUserAuthStrategy implements IUserAuthRepository
         );
 
         try {
-            UserAuthModel user = jdbcTemplate.queryForObject(sql, new Object[]{username},
+            UserAuthModel user = jdbcTemplate.queryForObject(sql,
                 (rs, rowNum) -> UserAuthModel.builder()
                     .username(rs.getString(u.getUsernameField()))
                     .password(rs.getString(u.getPasswordField()))
                     .active(rs.getBoolean(u.getIsActiveField()))
-                    .build());
+                    .build(),
+                username);
             return Optional.ofNullable(user);
         } catch (EmptyResultDataAccessException e) {
             return Optional.empty();

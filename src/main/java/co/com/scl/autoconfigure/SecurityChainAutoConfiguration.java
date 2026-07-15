@@ -10,6 +10,7 @@ import co.com.scl.security.jwt.JWTAuthorizationFilter;
 import co.com.scl.security.jwt.JWTTokenProvider;
 import co.com.scl.security.jwt.JwtAuthenticationEntryPoint;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
@@ -45,31 +46,41 @@ public class SecurityChainAutoConfiguration {
     // ── Database Strategy Selection (Pattern Strategy) ────────────────────────
 
     @Bean
+    @ConditionalOnMissingBean(IUserAuthRepository.class)
     @ConditionalOnProperty(name = "security.chaind.database-type", havingValue = "mongodb")
+    @ConditionalOnClass(name = "com.mongodb.client.MongoClient")
     public IUserAuthRepository mongoUserAuthRepository(SecurityProperties properties) {
         return new MongoUserAuthStrategy(properties);
     }
 
     @Bean
+    @ConditionalOnMissingBean(IUserAuthRepository.class)
     @ConditionalOnProperty(name = "security.chaind.database-type", havingValue = "postgresql")
+    @ConditionalOnClass(name = "org.postgresql.Driver")
     public IUserAuthRepository postgresqlUserAuthRepository(SecurityProperties properties) {
         return new PostgreSqlUserAuthStrategy(properties);
     }
 
     @Bean
+    @ConditionalOnMissingBean(IUserAuthRepository.class)
     @ConditionalOnProperty(name = "security.chaind.database-type", havingValue = "mysql")
+    @ConditionalOnClass(name = "com.mysql.cj.jdbc.Driver")
     public IUserAuthRepository mysqlUserAuthRepository(SecurityProperties properties) {
         return new MySqlUserAuthStrategy(properties);
     }
 
     @Bean
+    @ConditionalOnMissingBean(IUserAuthRepository.class)
     @ConditionalOnProperty(name = "security.chaind.database-type", havingValue = "oracle")
+    @ConditionalOnClass(name = "oracle.jdbc.OracleDriver")
     public IUserAuthRepository oracleUserAuthRepository(SecurityProperties properties) {
         return new OracleUserAuthStrategy(properties);
     }
 
     @Bean
+    @ConditionalOnMissingBean(IUserAuthRepository.class)
     @ConditionalOnProperty(name = "security.chaind.database-type", havingValue = "sqlserver")
+    @ConditionalOnClass(name = "com.microsoft.sqlserver.jdbc.SQLServerDriver")
     public IUserAuthRepository sqlServerUserAuthRepository(SecurityProperties properties) {
         return new SqlServerUserAuthStrategy(properties);
     }
