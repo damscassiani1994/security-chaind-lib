@@ -9,7 +9,12 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import org.bson.Document;
 
+import java.util.Arrays;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.regex.Pattern;
 
 public class MongoUserAuthStrategy implements IUserAuthRepository {
 
@@ -38,7 +43,34 @@ public class MongoUserAuthStrategy implements IUserAuthRepository {
             .username(getNestedString(result, u.getUsernameField()))
             .password(getNestedString(result, u.getPasswordField()))
             .active(Boolean.TRUE.equals(getNestedBoolean(result, u.getIsActiveField())))
+            .roles(getRoles(result, u.getRolesField(), u.getRolesSeparator()))
             .build());
+    }
+
+    private Set<String> getRoles(Document doc, String path, String separator) {
+        Object value = getNestedValue(doc, path);
+        Set<String> roles = new LinkedHashSet<>();
+
+        if (value instanceof List<?> list) {
+            list.stream()
+                .filter(item -> item instanceof String)
+                .map(item -> ((String) item).trim())
+                .filter(role -> !role.isEmpty())
+                .forEach(roles::add);
+        } else if (value instanceof String rawRoles && !rawRoles.isBlank()) {
+            Arrays.stream(rawRoles.split(Pattern.quote(separator)))
+                .map(String::trim)
+                .filter(role -> !role.isEmpty())
+                .forEach(roles::add);
+        }
+        return roles;
+    }
+
+    private Object getNestedValue(Document doc, String path) {
+        String[] parts = path.split("\\.", 2);
+        if (parts.length == 1) return doc.get(parts[0]);
+        Document nested = doc.get(parts[0], Document.class);
+        return nested != null ? getNestedValue(nested, parts[1]) : null;
     }
 
     private String getNestedString(Document doc, String path) {

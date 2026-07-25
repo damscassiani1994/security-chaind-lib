@@ -1,6 +1,12 @@
 # security-chaind-lib
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](#contributing)
+[![GitHub issues](https://img.shields.io/github/issues/damscassiani1994/security-chaind-lib)](https://github.com/damscassiani1994/security-chaind-lib/issues)
+
 Spring Boot auto-configuration library that wires Spring Security, stateless JWT authentication, and multi-database user validation into any Spring Boot application with zero boilerplate.
+
+**This project is open source and welcomes contributions.** See the [Contributing](#contributing) section to get started.
 
 ---
 
@@ -12,6 +18,7 @@ Spring Boot auto-configuration library that wires Spring Security, stateless JWT
 - **Strategy Pattern** for database selection: one property switches the active implementation
 - Built-in support for **MongoDB, PostgreSQL, MySQL, Oracle and SQL Server**
 - Configurable user table / collection schema (field names, table name)
+- Role-based authorization: roles loaded from the database are mapped to Spring Security `GrantedAuthority`
 - `PasswordHandler` bean exposed for encoding and verifying passwords
 
 ---
@@ -97,6 +104,10 @@ security:
       username-field: username
       password-field: password
       is-active-field: is_active
+      # Column / field that holds the user's roles (default: roles)
+      roles-field: roles
+      # Delimiter used to split roles stored as a single string (SQL only, default: ",")
+      roles-separator: ","
 ```
 
 ### `application.properties`
@@ -127,6 +138,10 @@ security.chaind.user.collection-or-table=users
 security.chaind.user.username-field=username
 security.chaind.user.password-field=password
 security.chaind.user.is-active-field=is_active
+# Column / field that holds the user's roles (default: roles)
+security.chaind.user.roles-field=roles
+# Delimiter used to split roles stored as a single string (SQL only, default: ",")
+security.chaind.user.roles-separator=,
 ```
 
 ### Custom field names
@@ -208,7 +223,8 @@ CREATE TABLE users (
     id          SERIAL PRIMARY KEY,
     username    VARCHAR(100) NOT NULL UNIQUE,
     password    VARCHAR(255) NOT NULL,
-    is_active   BOOLEAN      NOT NULL DEFAULT TRUE
+    is_active   BOOLEAN      NOT NULL DEFAULT TRUE,
+    roles       VARCHAR(255) NOT NULL DEFAULT 'USER'  -- comma-separated, e.g. "ADMIN,USER"
 );
 ```
 
@@ -218,9 +234,12 @@ CREATE TABLE users (
 {
   "username": "john.doe",
   "password": "$2a$10$...",
-  "is_active": true
+  "is_active": true,
+  "roles": ["ADMIN", "USER"]
 }
 ```
+
+`roles` can also be stored as a single delimited string in MongoDB (e.g. `"ADMIN,USER"`) — both shapes are resolved automatically.
 
 ---
 
@@ -246,6 +265,27 @@ Every incoming request passes through `JWTAuthorizationFilter`:
 2. Validates the token signature and expiration using `secret-key`.
 3. Loads the user via the active database strategy.
 4. Sets the `SecurityContext` — Spring Security handles the rest.
+
+---
+
+## Role-based authorization
+
+Roles loaded from `security.chaind.user.roles-field` are converted into Spring Security `GrantedAuthority` instances and attached to the authenticated user. Each role is upper-cased and prefixed with `ROLE_` if it isn't already (e.g. `admin` → `ROLE_ADMIN`), so you can use the standard Spring Security authorization APIs directly:
+
+```java
+@PreAuthorize("hasRole('ADMIN')")
+@GetMapping("/admin/reports")
+public List<Report> getReports() { ... }
+```
+
+```java
+http.authorizeHttpRequests(auth -> auth
+    .requestMatchers("/admin/**").hasRole("ADMIN")
+    .anyRequest().authenticated()
+);
+```
+
+If a user has no roles configured, an empty authority set is used and only authentication (not authorization) is enforced.
 
 ---
 
@@ -311,6 +351,27 @@ public SecurityFilterChain myCustomChain(HttpSecurity http) throws Exception {
 
 ---
 
+## Contributing
+
+This is an open source project and contributions are very welcome — bug reports, feature requests, documentation improvements, and pull requests.
+
+Repository: [github.com/damscassiani1994/security-chaind-lib](https://github.com/damscassiani1994/security-chaind-lib)
+
+**Found a bug or have an idea?** Open an [issue](https://github.com/damscassiani1994/security-chaind-lib/issues).
+
+**Want to submit a change?**
+
+1. Fork the repository.
+2. Create a branch for your change: `git checkout -b feature/my-feature`.
+3. Make your changes, keeping the existing code style (Lombok, Strategy Pattern for new database support, `@ConditionalOnMissingBean` / `@ConditionalOnClass` for autoconfiguration beans).
+4. Build and verify the project compiles: `./gradlew build`.
+5. Commit your changes with a clear message and push the branch to your fork.
+6. Open a pull request describing the change and the motivation behind it.
+
+Ideas for contributions include: new database strategy implementations, more configuration options, tests, and documentation fixes. If you're proposing a larger change, opening an issue first to discuss the approach is appreciated.
+
+---
+
 ## License
 
-This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
+This project is licensed under the MIT License. See [LICENSE](LICENSE) for details. Contributions are accepted under the same license.

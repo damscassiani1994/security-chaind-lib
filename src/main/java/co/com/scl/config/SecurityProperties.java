@@ -57,5 +57,9 @@ public class SecurityProperties {
         private String passwordField = "password";
         /** Field / column that indicates whether the account is active. */
         private String isActiveField = "is_active";
+        /** Field / column that holds the user's roles (SQL: single delimited string; MongoDB: string or array). */
+        private String rolesField = "roles";
+        /** Delimiter used to split roles when they are stored as a single string (SQL databases). */
+        private String rolesSeparator = ",";
     }
 }

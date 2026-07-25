@@ -8,7 +8,11 @@ import com.zaxxer.hikari.HikariDataSource;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 
+import java.util.Arrays;
+import java.util.LinkedHashSet;
 import java.util.Optional;
+import java.util.Set;
+import java.util.regex.Pattern;
 
 public abstract class AbstractSqlUserAuthStrategy implements IUserAuthRepository {
 
@@ -29,10 +33,11 @@ public abstract class AbstractSqlUserAuthStrategy implements IUserAuthRepository
     public Optional<UserAuthModel> findByUsername(String username) {
         SecurityProperties.UserProperties u = properties.getUser();
         String sql = String.format(
-            "SELECT %s, %s, %s FROM %s WHERE %s = ?",
+            "SELECT %s, %s, %s, %s FROM %s WHERE %s = ?",
             u.getUsernameField(),
             u.getPasswordField(),
             u.getIsActiveField(),
+            u.getRolesField(),
             u.getCollectionOrTable(),
             u.getUsernameField()
         );
@@ -43,11 +48,24 @@ public abstract class AbstractSqlUserAuthStrategy implements IUserAuthRepository
                     .username(rs.getString(u.getUsernameField()))
                     .password(rs.getString(u.getPasswordField()))
                     .active(rs.getBoolean(u.getIsActiveField()))
+                    .roles(parseRoles(rs.getString(u.getRolesField()), u.getRolesSeparator()))
                     .build(),
                 username);
             return Optional.ofNullable(user);
         } catch (EmptyResultDataAccessException e) {
             return Optional.empty();
         }
+    }
+
+    private Set<String> parseRoles(String rawRoles, String separator) {
+        Set<String> roles = new LinkedHashSet<>();
+        if (rawRoles == null || rawRoles.isBlank()) {
+            return roles;
+        }
+        Arrays.stream(rawRoles.split(Pattern.quote(separator)))
+            .map(String::trim)
+            .filter(role -> !role.isEmpty())
+            .forEach(roles::add);
+        return roles;
     }
 }
